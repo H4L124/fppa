@@ -9,10 +9,32 @@ from sklearn.cluster import KMeans
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-# Load data
-data = pd.read_excel('data.xlsx', sheet_name='data')
-train_data = pd.read_excel('data.xlsx', sheet_name='oversample.train')
-test_data = pd.read_excel('data.xlsx', sheet_name='test')
+# Cache the data loading function to avoid reloading the data on each rerun
+@st.cache_data
+def load_data(file_path):
+    data = pd.read_excel(file_path, sheet_name='data')
+    train_data = pd.read_excel(file_path, sheet_name='oversample.train')
+    test_data = pd.read_excel(file_path, sheet_name='test')
+    return data, train_data, test_data
+
+data, train_data, test_data = load_data('data.xlsx')
+
+# Cache the model training functions to avoid retraining the models on each rerun
+@st.cache_data
+def train_svm(X_train, y_train, kernel='linear', C=1.0, gamma='scale'):
+    svm_model = SVC(kernel=kernel, C=C, gamma=gamma)
+    svm_model.fit(X_train, y_train)
+    return svm_model
+
+@st.cache_data
+def train_kmeans_svm(X_train, y_train, n_clusters=3, kernel='linear', C=1.0, gamma='scale'):
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(X_train)
+    X_train['cluster'] = kmeans.labels_
+    
+    cluster_svm_model = make_pipeline(StandardScaler(), SVC(kernel=kernel, C=C, gamma=gamma))
+    cluster_svm_model.fit(X_train, y_train)
+    return kmeans, cluster_svm_model
 
 # Set page config
 st.set_page_config(page_title="Dashboard Klasifikasi SVM dan KMeans SVM", layout="wide")
@@ -25,15 +47,23 @@ page = st.sidebar.radio("Pilih halaman", ["Deskripsi Data", "Prediksi SVM", "Pre
 if page == "Deskripsi Data":
     st.title("Statistika Deskriptif")
     
-    # Descriptive statistics
+    # Descriptive statistics for each variable
+    def descriptive_stats(variable):
+        stats = data.groupby('fraud')[variable].agg(['mean', 'std', 'min', 'median', 'max']).reset_index()
+        stats['variable'] = variable
+        return stats
+
+    amount_stats = descriptive_stats('amount')
+    second_stats = descriptive_stats('second')
+    days_stats = descriptive_stats('days')
+
+    # Concatenate all stats into a single DataFrame
+    desc_stats = pd.concat([amount_stats, second_stats, days_stats], ignore_index=True)
+
+    # Display the descriptive statistics
     st.subheader("Tabel Statistika Deskriptif")
-    desc_stats = data.groupby('fraud').agg({
-        'amount': ['mean', 'std', 'min', 'median', 'max'],
-        'second': ['mean', 'std', 'min', 'median', 'max'],
-        'days': ['mean', 'std', 'min', 'median', 'max']
-    })
     st.table(desc_stats)
-    
+
     # Pie chart for fraud variable
     st.subheader("Pie Chart Variabel Fraud")
     fraud_counts = data['fraud'].value_counts()
@@ -62,9 +92,8 @@ elif page == "Prediksi SVM":
     X_test = test_data[['amount', 'second', 'days']]
     y_test = test_data['fraud']
     
-    # Train SVM model
-    svm_model = SVC(kernel='linear')
-    svm_model.fit(X_train, y_train)
+    # Train SVM model with specified parameters
+    svm_model = train_svm(X_train, y_train, kernel='linear', C=1.0, gamma='scale')
     y_pred_svm = svm_model.predict(X_test)
     
     # Evaluation
@@ -81,19 +110,24 @@ elif page == "Prediksi SVM":
     st.write(f"Sensitivitas: {recall_svm:.2f}")
     st.write(f"Spesifisitas: {precision_svm:.2f}")
 
+    # Add evaluation to the comparison section
+    accuracy_cluster_svm = 0.0
+    recall_cluster_svm = 0.0
+    precision_cluster_svm = 0.0
+
 # Prediksi KMeans SVM
 elif page == "Prediksi KMeans SVM":
     st.title("Prediksi Menggunakan KMeans SVM")
     
     # Prepare data
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    kmeans.fit(X_train)
-    X_train['cluster'] = kmeans.labels_
-    X_test['cluster'] = kmeans.predict(X_test)
+    X_train = train_data[['amount', 'second', 'days']]
+    y_train = train_data['fraud']
+    X_test = test_data[['amount', 'second', 'days']]
+    y_test = test_data['fraud']
     
-    # Train SVM model on clusters
-    cluster_svm_model = make_pipeline(StandardScaler(), SVC(kernel='linear'))
-    cluster_svm_model.fit(X_train, y_train)
+    # Train KMeans and SVM model with specified parameters
+    kmeans, cluster_svm_model = train_kmeans_svm(X_train, y_train, n_clusters=3, kernel='linear', C=1.0, gamma='scale')
+    X_test['cluster'] = kmeans.predict(X_test)
     y_pred_cluster_svm = cluster_svm_model.predict(X_test)
     
     # Evaluation
@@ -109,6 +143,11 @@ elif page == "Prediksi KMeans SVM":
     st.write(f"Akurasi: {accuracy_cluster_svm:.2f}")
     st.write(f"Sensitivitas: {recall_cluster_svm:.2f}")
     st.write(f"Spesifisitas: {precision_cluster_svm:.2f}")
+
+     # Add evaluation to the comparison section
+    accuracy_svm = 0.0
+    recall_svm = 0.0
+    precision_svm = 0.0
 
 # Perbandingan Model
 elif page == "Perbandingan Model":
@@ -139,4 +178,3 @@ elif page == "Prediksi Baru":
         input_data = np.array([[amount, second, days]])
         prediction = svm_model.predict(input_data)
         st.write(f"Hasil Prediksi: {'Penipuan' if prediction[0] == 1 else 'Sah'}")
-
