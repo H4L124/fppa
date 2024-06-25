@@ -38,8 +38,46 @@ def train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', 
     cluster_svm_model = make_pipeline(StandardScaler(), SVC(kernel=kernel, C=C, gamma=gamma))
     cluster_svm_model.fit(X_train_ksvm, y_train_ksvm)
     return kmeans, cluster_svm_model
+#-----------------------SVM-------------------------
+ # Prepare data
+    X_train_svm = train_data[['amount', 'second', 'days']]
+    y_train_svm = train_data['fraud']
+    X_test_svm = test_data[['amount', 'second', 'days']]
+    y_test_svm = test_data['fraud']
 
+    # Add evaluation to the comparison section
+    accuracy_svm = 0.0
+    recall_svm = 0.0
+    precision_svm = 0.0
 
+    
+    # Train SVM model with specified parameters
+    svm_model = train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale')
+    y_pred_svm = svm_model.predict(X_test_svm)
+    
+    # Evaluation
+    cm_svm = confusion_matrix(y_test_svm, y_pred_svm)
+    accuracy_svm = accuracy_score(y_test_svm, y_pred_svm)
+    recall_svm = recall_score(y_test_svm, y_pred_svm)
+    precision_svm = precision_score(y_test_svm, y_pred_svm)
+
+    #----------------------------------K-Means SVM----------------------------
+ # Prepare data
+    X_train_ksvm = train_data[['amount', 'second', 'days']]
+    y_train_ksvm = train_data['fraud']
+    X_test_ksvm = test_data[['amount', 'second', 'days']]
+    y_test_ksvm = test_data['fraud']
+
+    # Add evaluation to the comparison section
+    accuracy_cluster_svm = 0.0
+    recall_cluster_svm = 0.0
+    precision_cluster_svm = 0.0
+    
+    # Train KMeans and SVM model with specified parameters
+    kmeans, cluster_svm_model = train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale')
+    X_test_ksvm['cluster'] = kmeans.predict(X_test_ksvm)
+    y_pred_cluster_svm = cluster_svm_model.predict(X_test_ksvm)
+    
 
 # Sidebar for navigation
 st.sidebar.title("Navigasi")
@@ -88,28 +126,6 @@ if page == "Deskripsi Data":
 elif page == "Prediksi SVM":
     st.title("Prediksi Menggunakan SVM")
     
-    # Prepare data
-    X_train_svm = train_data[['amount', 'second', 'days']]
-    y_train_svm = train_data['fraud']
-    X_test_svm = test_data[['amount', 'second', 'days']]
-    y_test_svm = test_data['fraud']
-
-    # Add evaluation to the comparison section
-    accuracy_svm = 0.0
-    recall_svm = 0.0
-    precision_svm = 0.0
-
-    
-    # Train SVM model with specified parameters
-    svm_model = train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale')
-    y_pred_svm = svm_model.predict(X_test_svm)
-    
-    # Evaluation
-    cm_svm = confusion_matrix(y_test_svm, y_pred_svm)
-    accuracy_svm = accuracy_score(y_test_svm, y_pred_svm)
-    recall_svm = recall_score(y_test_svm, y_pred_svm)
-    precision_svm = precision_score(y_test_svm, y_pred_svm)
-    
     st.subheader("Confusion Matrix")
     st.table(cm_svm)
     
@@ -122,21 +138,7 @@ elif page == "Prediksi SVM":
 elif page == "Prediksi KMeans SVM":
     st.title("Prediksi Menggunakan KMeans SVM")
     
-    # Prepare data
-    X_train_ksvm = train_data[['amount', 'second', 'days']]
-    y_train_ksvm = train_data['fraud']
-    X_test_ksvm = test_data[['amount', 'second', 'days']]
-    y_test_ksvm = test_data['fraud']
-
-    # Add evaluation to the comparison section
-    accuracy_cluster_svm = 0.0
-    recall_cluster_svm = 0.0
-    precision_cluster_svm = 0.0
-    
-    # Train KMeans and SVM model with specified parameters
-    kmeans, cluster_svm_model = train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale')
-    X_test_ksvm['cluster'] = kmeans.predict(X_test_ksvm)
-    y_pred_cluster_svm = cluster_svm_model.predict(X_test_ksvm)
+   
     
     # Evaluation
     cm_cluster_svm = confusion_matrix(y_test_ksvm, y_pred_cluster_svm)
@@ -156,15 +158,6 @@ elif page == "Prediksi KMeans SVM":
 # Perbandingan Model
 elif page == "Perbandingan Model":
     st.title("Perbandingan Model SVM dan KMeans SVM")
-
-        # Add evaluation to the comparison section
-    accuracy_svm = 0.0
-    recall_svm = 0.0
-    precision_svm = 0.0
-        # Add evaluation to the comparison section
-    accuracy_cluster_svm = 0.0
-    recall_cluster_svm = 0.0
-    precision_cluster_svm = 0.0
     
     st.subheader("Evaluasi Model SVM")
     st.write(f"Akurasi: {accuracy_svm:.2f}")
