@@ -24,19 +24,19 @@ data, train_data, test_data = load_data('data.xlsx')
 
 # Cache the model training functions to avoid retraining the models on each rerun
 @st.cache_resource
-def train_svm(X_train, y_train, kernel='linear', C=1.0, gamma='scale'):
+def train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale'):
     svm_model = SVC(kernel=kernel, C=C, gamma=gamma)
-    svm_model.fit(X_train, y_train)
+    svm_model.fit(X_train_svm, y_train_svm)
     return svm_model
 
 @st.cache_resource
-def train_kmeans_svm(X_train, y_train, n_clusters=3, kernel='linear', C=1.0, gamma='scale'):
+def train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale'):
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     kmeans.fit(X_train)
-    X_train['cluster'] = kmeans.labels_
+    X_train_ksvm['cluster'] = kmeans.labels_
     
     cluster_svm_model = make_pipeline(StandardScaler(), SVC(kernel=kernel, C=C, gamma=gamma))
-    cluster_svm_model.fit(X_train, y_train)
+    cluster_svm_model.fit(X_train_ksvm, y_train_ksvm)
     return kmeans, cluster_svm_model
 
 
@@ -89,20 +89,26 @@ elif page == "Prediksi SVM":
     st.title("Prediksi Menggunakan SVM")
     
     # Prepare data
-    X_train = train_data[['amount', 'second', 'days']]
-    y_train = train_data['fraud']
-    X_test = test_data[['amount', 'second', 'days']]
-    y_test = test_data['fraud']
+    X_train_svm = train_data[['amount', 'second', 'days']]
+    y_train_svm = train_data['fraud']
+    X_test_svm = test_data[['amount', 'second', 'days']]
+    y_test_svm = test_data['fraud']
+
+    # Add evaluation to the comparison section
+    accuracy_svm = 0.0
+    recall_svm = 0.0
+    precision_svm = 0.0
+
     
     # Train SVM model with specified parameters
-    svm_model = train_svm(X_train, y_train, kernel='linear', C=1.0, gamma='scale')
-    y_pred_svm = svm_model.predict(X_test)
+    svm_model = train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale')
+    y_pred_svm = svm_model.predict(X_test_svm)
     
     # Evaluation
-    cm_svm = confusion_matrix(y_test, y_pred_svm)
-    accuracy_svm = accuracy_score(y_test, y_pred_svm)
-    recall_svm = recall_score(y_test, y_pred_svm)
-    precision_svm = precision_score(y_test, y_pred_svm)
+    cm_svm = confusion_matrix(y_test_svm, y_pred_svm)
+    accuracy_svm = accuracy_score(y_test_svm, y_pred_svm)
+    recall_svm = recall_score(y_test_svm, y_pred_svm)
+    precision_svm = precision_score(y_test_svm, y_pred_svm)
     
     st.subheader("Confusion Matrix")
     st.table(cm_svm)
@@ -112,31 +118,31 @@ elif page == "Prediksi SVM":
     st.write(f"Sensitivitas: {recall_svm:.2f}")
     st.write(f"Spesifisitas: {precision_svm:.2f}")
 
-    # Add evaluation to the comparison section
-    accuracy_cluster_svm = 0.0
-    recall_cluster_svm = 0.0
-    precision_cluster_svm = 0.0
-
 # Prediksi KMeans SVM
 elif page == "Prediksi KMeans SVM":
     st.title("Prediksi Menggunakan KMeans SVM")
     
     # Prepare data
-    X_train = train_data[['amount', 'second', 'days']]
-    y_train = train_data['fraud']
-    X_test = test_data[['amount', 'second', 'days']]
-    y_test = test_data['fraud']
+    X_train_ksvm = train_data[['amount', 'second', 'days']]
+    y_train_ksvm = train_data['fraud']
+    X_test_ksvm = test_data[['amount', 'second', 'days']]
+    y_test_ksvm = test_data['fraud']
+
+    # Add evaluation to the comparison section
+    accuracy_cluster_svm = 0.0
+    recall_cluster_svm = 0.0
+    precision_cluster_svm = 0.0
     
     # Train KMeans and SVM model with specified parameters
-    kmeans, cluster_svm_model = train_kmeans_svm(X_train, y_train, n_clusters=3, kernel='linear', C=1.0, gamma='scale')
-    X_test['cluster'] = kmeans.predict(X_test)
-    y_pred_cluster_svm = cluster_svm_model.predict(X_test)
+    kmeans, cluster_svm_model = train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale')
+    X_test['cluster'] = kmeans.predict(X_test_ksvm)
+    y_pred_cluster_svm = cluster_svm_model.predict(X_test_ksvm)
     
     # Evaluation
-    cm_cluster_svm = confusion_matrix(y_test, y_pred_cluster_svm)
-    accuracy_cluster_svm = accuracy_score(y_test, y_pred_cluster_svm)
-    recall_cluster_svm = recall_score(y_test, y_pred_cluster_svm)
-    precision_cluster_svm = precision_score(y_test, y_pred_cluster_svm)
+    cm_cluster_svm = confusion_matrix(y_test_ksvm, y_pred_cluster_svm)
+    accuracy_cluster_svm = accuracy_score(y_test_ksvm, y_pred_cluster_svm)
+    recall_cluster_svm = recall_score(y_test_ksvm, y_pred_cluster_svm)
+    precision_cluster_svm = precision_score(y_test_ksvm, y_pred_cluster_svm)
     
     st.subheader("Confusion Matrix")
     st.table(cm_cluster_svm)
@@ -146,14 +152,19 @@ elif page == "Prediksi KMeans SVM":
     st.write(f"Sensitivitas: {recall_cluster_svm:.2f}")
     st.write(f"Spesifisitas: {precision_cluster_svm:.2f}")
 
-     # Add evaluation to the comparison section
-    accuracy_svm = 0.0
-    recall_svm = 0.0
-    precision_svm = 0.0
 
 # Perbandingan Model
 elif page == "Perbandingan Model":
     st.title("Perbandingan Model SVM dan KMeans SVM")
+    
+    # Add evaluation to the comparison section
+    accuracy_svm = 0.0
+    recall_svm = 0.0
+    precision_svm = 0.0
+    # Add evaluation to the comparison section
+    accuracy_cluster_svm = 0.0
+    recall_cluster_svm = 0.0
+    precision_cluster_svm = 0.0
     
     st.subheader("Evaluasi Model SVM")
     st.write(f"Akurasi: {accuracy_svm:.2f}")
@@ -169,9 +180,9 @@ elif page == "Perbandingan Model":
 elif page == "Prediksi Baru":
     st.title("Prediksi Baru Menggunakan Model SVM")
     
-    amount = st.number_input("Amount", min_value=0.0)
-    second = st.number_input("Second", min_value=0.0)
-    days = st.number_input("Days", min_value=0, value=int(second // 86400))
+    amount = st.number_input("Amount", min_value=0.0, max_value = 30000.0)
+    second = st.number_input("Second", min_value=0.0, max_value = 30000.0)
+    days = st.number_input("Days", min_value=0.0, value= second // 86400.0)
     
     # Update second based on days input
     second = st.number_input("Second", min_value=0.0, value=days * 86400)
