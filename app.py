@@ -181,11 +181,9 @@ elif page == "Prediksi Baru":
     st.title("Prediksi Baru Menggunakan Model SVM")
     
     amount = st.number_input("Amount", min_value=0.0, max_value = 30000.0)
+    second = st.number_input("Second", min_value=0.0, value=days * 86400.0)
     days = st.number_input("Days", min_value=0.0, value= second // 86400.0)
-    second = days * 86400
-    
-    # Update second based on days input
-    second = st.number_input("Second", min_value=0.0, value=days * 86400)
+
     
     if st.button("Prediksi"):
         input_data = np.array([[amount, second, days]])
