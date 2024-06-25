@@ -37,7 +37,7 @@ def train_kmeans_svm(X_train, y_train, n_clusters=3, kernel='linear', C=1.0, gam
     return kmeans, cluster_svm_model
 
 # Set page config
-st.set_page_config(page_title="Dashboard Klasifikasi SVM dan KMeans SVM", layout="wide")
+st.set_page_config(page_title="Dashboard Klasifikasi SVM dan KMeans SVM")
 
 # Sidebar for navigation
 st.sidebar.title("Navigasi")
