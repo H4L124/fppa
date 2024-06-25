@@ -135,7 +135,7 @@ elif page == "Prediksi KMeans SVM":
     
     # Train KMeans and SVM model with specified parameters
     kmeans, cluster_svm_model = train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale')
-    X_test['cluster'] = kmeans.predict(X_test_ksvm)
+    X_test_ksvm['cluster'] = kmeans.predict(X_test_ksvm)
     y_pred_cluster_svm = cluster_svm_model.predict(X_test_ksvm)
     
     # Evaluation
