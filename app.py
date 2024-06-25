@@ -9,6 +9,9 @@ from sklearn.cluster import KMeans
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
+# Set page config
+st.set_page_config(page_title="Dashboard Klasifikasi SVM dan KMeans SVM")
+
 # Cache the data loading function to avoid reloading the data on each rerun
 @st.cache
 def load_data(file_path):
@@ -36,8 +39,7 @@ def train_kmeans_svm(X_train, y_train, n_clusters=3, kernel='linear', C=1.0, gam
     cluster_svm_model.fit(X_train, y_train)
     return kmeans, cluster_svm_model
 
-# Set page config
-st.set_page_config(page_title="Dashboard Klasifikasi SVM dan KMeans SVM")
+
 
 # Sidebar for navigation
 st.sidebar.title("Navigasi")
