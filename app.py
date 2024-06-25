@@ -32,7 +32,7 @@ def train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale'):
 @st.cache_resource
 def train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale'):
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    kmeans.fit(X_train)
+    kmeans.fit(X_train_ksvm)
     X_train_ksvm['cluster'] = kmeans.labels_
     
     cluster_svm_model = make_pipeline(StandardScaler(), SVC(kernel=kernel, C=C, gamma=gamma))
@@ -157,6 +157,14 @@ elif page == "Prediksi KMeans SVM":
 elif page == "Perbandingan Model":
     st.title("Perbandingan Model SVM dan KMeans SVM")
 
+        # Add evaluation to the comparison section
+    accuracy_svm = 0.0
+    recall_svm = 0.0
+    precision_svm = 0.0
+        # Add evaluation to the comparison section
+    accuracy_cluster_svm = 0.0
+    recall_cluster_svm = 0.0
+    precision_cluster_svm = 0.0
     
     st.subheader("Evaluasi Model SVM")
     st.write(f"Akurasi: {accuracy_svm:.2f}")
