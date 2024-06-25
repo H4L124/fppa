@@ -156,15 +156,7 @@ elif page == "Prediksi KMeans SVM":
 # Perbandingan Model
 elif page == "Perbandingan Model":
     st.title("Perbandingan Model SVM dan KMeans SVM")
-    
-    # Add evaluation to the comparison section
-    accuracy_svm = 0.0
-    recall_svm = 0.0
-    precision_svm = 0.0
-    # Add evaluation to the comparison section
-    accuracy_cluster_svm = 0.0
-    recall_cluster_svm = 0.0
-    precision_cluster_svm = 0.0
+
     
     st.subheader("Evaluasi Model SVM")
     st.write(f"Akurasi: {accuracy_svm:.2f}")
@@ -175,14 +167,22 @@ elif page == "Perbandingan Model":
     st.write(f"Akurasi: {accuracy_cluster_svm:.2f}")
     st.write(f"Sensitivitas: {recall_cluster_svm:.2f}")
     st.write(f"Spesifisitas: {precision_cluster_svm:.2f}")
+    
+    # Compare accuracy and display message based on comparison
+    if accuracy_svm > accuracy_cluster_svm:
+        st.write("Metode SVM lebih baik dalam memprediksi penipuan transaksi kartu kredit.")
+    elif accuracy_svm < accuracy_cluster_svm:
+        st.write("Metode KMeans SVM lebih baik dalam memprediksi penipuan transaksi kartu kredit.")
+    else:
+        st.write("Metode SVM dan KMeans SVM memiliki performa prediksi yang sama untuk penipuan transaksi kartu kredit.")
 
 # Prediksi Baru
 elif page == "Prediksi Baru":
     st.title("Prediksi Baru Menggunakan Model SVM")
     
     amount = st.number_input("Amount", min_value=0.0, max_value = 30000.0)
-    second = st.number_input("Second", min_value=0.0, max_value = 30000.0)
     days = st.number_input("Days", min_value=0.0, value= second // 86400.0)
+    second = days * 86400
     
     # Update second based on days input
     second = st.number_input("Second", min_value=0.0, value=days * 86400)
