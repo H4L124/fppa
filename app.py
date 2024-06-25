@@ -23,13 +23,13 @@ def load_data(file_path):
 data, train_data, test_data = load_data('data.xlsx')
 
 # Cache the model training functions to avoid retraining the models on each rerun
-@st.cache_resource(allow_output_mutation=True)
+@st.cache_resource
 def train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale'):
     svm_model = SVC(kernel=kernel, C=C, gamma=gamma)
     svm_model.fit(X_train_svm, y_train_svm)
     return svm_model
 
-@st.cache_resource(allow_output_mutation=True)
+@st.cache_resource
 def train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale'):
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     kmeans.fit(X_train_ksvm)
