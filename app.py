@@ -22,6 +22,15 @@ def load_data(file_path):
 
 data, train_data, test_data = load_data('data.xlsx')
 
+# Standardize the data
+scaler = StandardScaler()
+X_train_svm = train_data[['amount', 'second', 'days']]
+X_test_svm = test_data[['amount', 'second', 'days']]
+X_train_svm = scaler.fit_transform(X_train_svm)
+X_test_svm = scaler.transform(X_test_svm)
+y_train_svm = train_data['fraud']
+y_test_svm = test_data['fraud']
+
 # Cache the model training functions to avoid retraining the models on each rerun
 @st.cache_resource
 def train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale'):
@@ -31,7 +40,7 @@ def train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale'):
 
 @st.cache_resource
 def train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale'):
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
     kmeans.fit(X_train_ksvm)
     X_train_ksvm['cluster'] = kmeans.labels_
     
@@ -39,19 +48,12 @@ def train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', 
     cluster_svm_model.fit(X_train_ksvm, y_train_ksvm)
     return kmeans, cluster_svm_model
 
-# Training SVM and KMeans SVM models
-# Prepare data for SVM
-X_train_svm = train_data[['amount', 'second', 'days']]
-y_train_svm = train_data['fraud']
-X_test_svm = test_data[['amount', 'second', 'days']]
-y_test_svm = test_data['fraud']
-
+# Train the SVM and KMeans SVM models
 svm_model = train_svm(X_train_svm, y_train_svm, kernel='linear', C=1.0, gamma='scale')
 
-# Prepare data for KMeans SVM
-X_train_ksvm = train_data[['amount', 'second', 'days']]
+X_train_ksvm = pd.DataFrame(scaler.fit_transform(train_data[['amount', 'second', 'days']]), columns=['amount', 'second', 'days'])
 y_train_ksvm = train_data['fraud']
-X_test_ksvm = test_data[['amount', 'second', 'days']]
+X_test_ksvm = pd.DataFrame(scaler.transform(test_data[['amount', 'second', 'days']]), columns=['amount', 'second', 'days'])
 y_test_ksvm = test_data['fraud']
 
 kmeans, cluster_svm_model = train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clusters=3, kernel='linear', C=1.0, gamma='scale')
@@ -60,7 +62,7 @@ kmeans, cluster_svm_model = train_kmeans_svm(X_train_ksvm, y_train_ksvm, n_clust
 st.sidebar.title("Navigasi")
 page = st.sidebar.radio("Pilih halaman", ["Deskripsi Data", "Prediksi SVM", "Prediksi KMeans SVM", "Perbandingan Model", "Prediksi Baru"])
 
-# Deskripsi Data
+# Data Description
 if page == "Deskripsi Data":
     st.title("Statistika Deskriptif")
     
@@ -84,37 +86,38 @@ if page == "Deskripsi Data":
     # Pie chart for fraud variable
     st.subheader("Pie Chart Variabel Fraud")
     fraud_counts = data['fraud'].value_counts()
-    plt.figure(figsize=(5,5))
-    plt.pie(fraud_counts, labels=['Sah', 'Penipuan'], autopct='%1.1f%%', startangle=140)
-    st.pyplot(plt)
+    fig1, ax1 = plt.subplots()
+    ax1.pie(fraud_counts, labels=['Sah', 'Penipuan'], autopct='%1.1f%%', startangle=140)
+    st.pyplot(fig1)
     
     # Boxplot for variables based on fraud category
     st.subheader("Boxplot Berdasarkan Kategori Fraud")
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig2, axes = plt.subplots(1, 3, figsize=(15, 5))
     sns.boxplot(x='fraud', y='amount', data=data, ax=axes[0])
     axes[0].set_title('Amount')
     sns.boxplot(x='fraud', y='second', data=data, ax=axes[1])
     axes[1].set_title('Second')
     sns.boxplot(x='fraud', y='days', data=data, ax=axes[2])
     axes[2].set_title('Days')
-    st.pyplot(fig)
+    st.pyplot(fig2)
 
-# Prediksi SVM
-elif page == "Prediksi SVM":
+# Predictions and evaluations
+y_pred_svm = svm_model.predict(X_test_svm)
+cm_svm = confusion_matrix(y_test_svm, y_pred_svm)
+accuracy_svm = accuracy_score(y_test_svm, y_pred_svm)
+recall_svm = recall_score(y_test_svm, y_pred_svm)
+precision_svm = precision_score(y_test_svm, y_pred_svm)
+
+X_test_ksvm['cluster'] = kmeans.predict(X_test_ksvm)
+y_pred_cluster_svm = cluster_svm_model.predict(X_test_ksvm)
+cm_cluster_svm = confusion_matrix(y_test_ksvm, y_pred_cluster_svm)
+accuracy_cluster_svm = accuracy_score(y_test_ksvm, y_pred_cluster_svm)
+recall_cluster_svm = recall_score(y_test_ksvm, y_pred_cluster_svm)
+precision_cluster_svm = precision_score(y_test_ksvm, y_pred_cluster_svm)
+
+# SVM Predictions
+if page == "Prediksi SVM":
     st.title("Prediksi Menggunakan SVM")
-    
-    # Prepare data
-    X_test_svm = test_data[['amount', 'second', 'days']]
-    y_test_svm = test_data['fraud']
-
-    # Predict using SVM model
-    y_pred_svm = svm_model.predict(X_test_svm)
-    
-    # Evaluation
-    cm_svm = confusion_matrix(y_test_svm, y_pred_svm)
-    accuracy_svm = accuracy_score(y_test_svm, y_pred_svm)
-    recall_svm = recall_score(y_test_svm, y_pred_svm)
-    precision_svm = precision_score(y_test_svm, y_pred_svm)
     
     st.subheader("Confusion Matrix")
     st.table(cm_svm)
@@ -124,23 +127,9 @@ elif page == "Prediksi SVM":
     st.write(f"Sensitivitas: {recall_svm:.2f}")
     st.write(f"Spesifisitas: {precision_svm:.2f}")
 
-# Prediksi KMeans SVM
+# KMeans SVM Predictions
 elif page == "Prediksi KMeans SVM":
     st.title("Prediksi Menggunakan KMeans SVM")
-    
-    # Prepare data
-    X_test_ksvm = test_data[['amount', 'second', 'days']]
-    y_test_ksvm = test_data['fraud']
-    
-    # Predict using KMeans SVM model
-    X_test_ksvm['cluster'] = kmeans.predict(X_test_ksvm)
-    y_pred_cluster_svm = cluster_svm_model.predict(X_test_ksvm)
-    
-    # Evaluation
-    cm_cluster_svm = confusion_matrix(y_test_ksvm, y_pred_cluster_svm)
-    accuracy_cluster_svm = accuracy_score(y_test_ksvm, y_pred_cluster_svm)
-    recall_cluster_svm = recall_score(y_test_ksvm, y_pred_cluster_svm)
-    precision_cluster_svm = precision_score(y_test_ksvm, y_pred_cluster_svm)
     
     st.subheader("Confusion Matrix")
     st.table(cm_cluster_svm)
@@ -150,7 +139,7 @@ elif page == "Prediksi KMeans SVM":
     st.write(f"Sensitivitas: {recall_cluster_svm:.2f}")
     st.write(f"Spesifisitas: {precision_cluster_svm:.2f}")
 
-# Perbandingan Model
+# Model Comparison
 elif page == "Perbandingan Model":
     st.title("Perbandingan Model SVM dan KMeans SVM")
     
@@ -172,7 +161,7 @@ elif page == "Perbandingan Model":
     else:
         st.write("Metode SVM dan KMeans SVM memiliki performa prediksi yang sama untuk penipuan transaksi kartu kredit.")
 
-# Prediksi Baru
+# New Predictions
 elif page == "Prediksi Baru":
     st.title("Prediksi Baru Menggunakan Model SVM")
     
@@ -181,6 +170,6 @@ elif page == "Prediksi Baru":
     second = st.number_input("Second", min_value=0.0, value=days * 86400.0)
     
     if st.button("Prediksi"):
-        input_data = np.array([[amount, second, days]])
+        input_data = scaler.transform(np.array([[amount, second, days]]))
         prediction = svm_model.predict(input_data)
         st.write(f"Hasil Prediksi: {'Penipuan' if prediction[0] == 1 else 'Sah'}")
